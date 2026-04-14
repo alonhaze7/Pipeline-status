@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCI Data Pipelines</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;background:#f3f2f2;color:#181818}
+.topnav{background:#fff;border-bottom:1px solid #ddd;height:40px;display:flex;align-items:center;padding:0 12px;gap:0;position:sticky;top:0;z-index:10}
+.topnav-brand{display:flex;align-items:center;gap:8px;padding-right:20px;font-size:13px;font-weight:700;color:#032d60;flex-shrink:0}
+.topnav-brand svg{width:26px;height:26px}
+.topnav-links{display:flex;height:40px}
+.topnav-links a{display:flex;align-items:center;padding:0 12px;font-size:12px;color:#3e3e3c;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;text-decoration:none}
+.topnav-links a.act{color:#0176d3;border-bottom-color:#0176d3;font-weight:600}
+.topnav-links a:hover:not(.act){color:#0176d3}
+.wrap{display:flex;min-height:calc(100vh - 40px)}
+.side{width:172px;background:#fff;border-right:1px solid #ddd;padding:10px 0;flex-shrink:0}
+.side-hd{font-size:11px;font-weight:700;color:#706e6b;padding:8px 14px 3px;text-transform:uppercase;letter-spacing:.4px}
+.side a{display:block;padding:6px 14px;font-size:12.5px;color:#3e3e3c;cursor:pointer;border-left:3px solid transparent;text-decoration:none}
+.side a.act{color:#0176d3;background:#e8f4fd;border-left-color:#0176d3;font-weight:600}
+.side a:hover:not(.act){background:#f3f2f2}
+.main{flex:1;padding:16px 20px;overflow:auto}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ph-left{display:flex;align-items:center;gap:10px}
+.ph-icon{width:30px;height:30px;background:#0176d3;border-radius:5px;display:flex;align-items:center;justify-content:center}
+.ph-title{font-size:20px;font-weight:700;color:#032d60}
+.btn-primary{background:#0176d3;color:#fff;border:none;padding:6px 14px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-primary:hover{background:#0155a1}
+.tbox{background:#fff;border:1px solid #ddd;border-radius:5px;overflow:hidden}
+.tbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #f0f0f0}
+.tbar-ct{font-size:12px;color:#706e6b}
+.srch{display:flex;align-items:center;gap:5px;border:1px solid #ddd;border-radius:4px;padding:4px 9px;background:#fff}
+.srch input{border:none;outline:none;font-size:12px;width:150px;background:transparent}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:#f3f2f2}
+th{text-align:left;font-size:11.5px;font-weight:700;color:#3e3e3c;padding:7px 10px;border-bottom:1px solid #ddd;white-space:nowrap}
+td{padding:6px 10px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#f8f8f8}
+.rn{color:#888;font-size:11px}
+.pl{color:#0176d3;cursor:pointer;font-size:12px}
+.pl:hover{text-decoration:underline}
+.bdg{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px}
+.bdg-active{background:#e3f5e9;color:#1a6b2a}
+.bdg-failed{background:#fce8ea;color:#a01c1c}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-g{background:#1e7e34}
+.dot-r{background:#c0392b}
+.ok{color:#1e7e34;font-weight:600;display:flex;align-items:center;gap:4px}
+.ok svg,.na svg{width:13px;height:13px;flex-shrink:0}
+.na{color:#888}
+.proc{color:#e65100;display:flex;align-items:center;gap:5px}
+.spin{width:11px;height:11px;border:2px solid #ef6c00;border-top-color:transparent;border-radius:50%;animation:sp 1s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+.rb{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap}
+.rb-g{background:#e3f5e9;color:#155724}
+.rb-y{background:#fff8e1;color:#7a4f00}
+.rb-r{background:#fce8ea;color:#a01c1c}
+.btn-logs{background:none;border:1px solid #0176d3;color:#0176d3;border-radius:3px;padding:2px 7px;font-size:10.5px;font-weight:600;cursor:pointer;margin-left:5px;white-space:nowrap}
+.btn-logs:hover{background:#e8f4fd}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding-top:40px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:6px;width:960px;max-width:96vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden}
+.mhd{background:#032d60;color:#fff;padding:12px 18px;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
+.mhd-info h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.mhd-meta{display:flex;gap:18px;font-size:11.5px;opacity:.8;flex-wrap:wrap}
+.mhd-meta span{display:flex;align-items:center;gap:4px}
+.mclose{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;padding:0 2px;opacity:.8}
+.mclose:hover{opacity:1}
+.mfiltbar{background:#fdf3f3;border-bottom:1px solid #f0d0d0;padding:7px 16px;font-size:11.5px;color:#a01c1c;font-weight:600;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.mbody{overflow:auto;flex:1}
+.modal table{font-size:11.5px}
+.modal thead tr{background:#f3f2f2}
+.modal th{font-size:11px;padding:7px 10px}
+.modal td{padding:6px 10px;border-bottom:1px solid #f5f5f5;font-size:11.5px}
+.modal tr:last-child td{border-bottom:none}
+.modal tbody tr:hover td{background:#fff5f5}
+.fbdg{background:#fce8ea;color:#a01c1c;font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:9px;display:inline-flex;align-items:center;gap:3px}
+.mid{font-family:monospace;font-size:10.5px;color:#555}
+.row-arrow{background:none;border:1px solid #ddd;border-radius:3px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#555;transition:background .15s,border-color .15s;flex-shrink:0}
+.row-arrow:hover{background:#f0f4ff;border-color:#0176d3;color:#0176d3}
+.row-arrow.open{background:#0176d3;border-color:#0176d3;color:#fff}
+.row-arrow svg{width:12px;height:12px;transition:transform .2s}
+.row-arrow.open svg{transform:rotate(90deg)}
+.action-row td{background:#f7fbff;border-bottom:1px solid #dde8f5;padding:0}
+.action-panel{display:flex;align-items:center;gap:10px;padding:8px 14px 10px 40px}
+.btn-reprocess{display:inline-flex;align-items:center;gap:6px;background:#0176d3;color:#fff;border:none;border-radius:4px;padding:5px 13px;font-size:11.5px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-reprocess:hover{background:#0155a1}
+.btn-reprocess.loading{background:#5aabf0;cursor:not-allowed}
+.btn-reprocess svg{width:13px;height:13px}
+.reprocess-note{font-size:11px;color:#706e6b}
+.toast{position:fixed;bottom:24px;right:24px;background:#1e7e34;color:#fff;border-radius:5px;padding:9px 16px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:999;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast svg{width:14px;height:14px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <div class="topnav-brand">
+    <svg viewBox="0 0 26 26" fill="none"><circle cx="13" cy="13" r="13" fill="#0176d3"/><path d="M6 18a4 4 0 01-.4-7.97A5.5 5.5 0 0117.4 12H18.5a2.5 2.5 0 010 5H6z" fill="white"/></svg>
+    Marketing Intelligence
+  </div>
+  <div class="topnav-links">
+    <a>Home</a><a>Goals</a><a>Marketing Analytics</a><a class="act">Data Management</a><a>Dashboards</a><a>Reports</a><a>Semantic Layer</a><a>Data Model</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="side">
+    <div class="side-hd">Data Management</div>
+    <a class="act">Data Pipelines</a>
+    <a>Data Enrichment</a>
+    <a>Patterns</a>
+  </div>
+  <div class="main">
+    <div class="ph">
+      <div class="ph-left">
+        <div class="ph-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+        </div>
+        <span class="ph-title">Data Pipelines</span>
+      </div>
+      <button class="btn-primary">+ New Pipeline</button>
+    </div>
+
+    <div class="tbox">
+      <div class="tbar">
+        <span class="tbar-ct" id="itemCount">17 items</span>
+        <div class="srch">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search..." id="srchIn" oninput="filterRows()">
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28px"></th>
+            <th>Name ⌄</th>
+            <th>Data Space ⌄</th>
+            <th>Source ⌄</th>
+            <th>Status ⌄</th>
+            <th>Last Run Status ⌄</th>
+            <th>Last Run ⌄</th>
+            <th>Next Run ⌄</th>
+            <th>Last Data Date ⌄</th>
+            <th>Last 10 Runs ⌄</th>
+          </tr>
+        </thead>
+        <tbody id="ptbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="mhd">
+      <div class="mhd-info">
+        <h3 id="mTitle"></h3>
+        <div class="mhd-meta" id="mMeta"></div>
+      </div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mfiltbar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Showing failed runs only — sorted by most recent
+    </div>
+    <div class="mbody">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User name</th>
+            <th>Task name</th>
+            <th>Data type</th>
+            <th>Data start</th>
+            <th>Data end</th>
+            <th>Status</th>
+            <th>Run type</th>
+            <th>Start exec.</th>
+            <th>End exec.</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Reprocess triggered</span>
+</div>
+
+<script>
+const pipelines=[
+  {id:1,name:"FacebookAds 2046174272",space:"default",src:"Meta Ads",status:"Active",lrs:"Success",lr:"4/23/2025, 12:00 AM",nr:"4/24/2025",ldd:"4/22/2025",ok:10},
+  {id:2,name:"LinkedinAds 2046082921",space:"default",src:"LinkedIn Ads For EMI",status:"Active",lrs:"Success",lr:"4/23/2025, 12:00 AM",nr:"4/24/2025",ldd:"4/23/2025",ok:9},
+  {id:3,name:"bingalon 2045715631",space:"default",src:"Bing Ads For EMI",status:"Active",lrs:"Success",lr:"4/23/2025, 12:00 AM",nr:"4/24/2025",ldd:"2/21/2025",ok:8},
+  {id:4,name:"Banking_DKO_13_6_Banki...",space:"default",src:"Total Connect",status:"Active",lrs:"Success",lr:"3/11/2025, 09:42 AM",nr:"",ldd:"2/17/2025",ok:10},
+  {id:5,name:"Banking_DKO_13_6_Banki...",space:"default",src:"Total Connect",status:"Active",lrs:"Success",lr:"3/11/2025, 09:45 AM",nr:"",ldd:"2/17/2025",ok:7},
+  {id:6,name:"GoogleAds 1981477123",space:"default",src:"Google Ads",status:"Active",lrs:"Success",lr:"4/23/2025, 12:00 AM",nr:"4/24/2025",ldd:"4/23/2025",ok:10},
+  {id:7,name:"YoutubeAds 1981462095",space:"default",src:"Youtube Ads For EMI",status:"Active",lrs:"Success",lr:"4/23/2025, 12:10 AM",nr:"4/24/2025",ldd:"",ok:9},
+  {id:8,name:"Meta_ads2 1973711986",space:"default",src:"Meta Ads",status:"Active",lrs:"Success",lr:"4/23/2025, 12:11 AM",nr:"4/24/2025",ldd:"",ok:6},
+  {id:9,name:"meta_ads_3 1967535071",space:"default",src:"Meta Ads",status:"Active",lrs:"Success",lr:"4/23/2025, 12:12 AM",nr:"4/24/2025",ldd:"",ok:5},
+  {id:10,name:"Banking_DKO_13_6_new2...",space:"default",src:"Total Connect",status:"Active",lrs:"Success",lr:"3/24/2025, 11:09 PM",nr:"",ldd:"3/17/2025",ok:10},
+  {id:11,name:"meta10 859076371",space:"default",src:"Meta Ads",status:"Failed",lrs:"N/A",lr:"",nr:"",ldd:"",ok:2},
+  {id:12,name:"Banking_DKO_13_6_new3...",space:"default",src:"Total Connect",status:"Active",lrs:"Success",lr:"4/1/2025, 05:24 AM",nr:"",ldd:"3/17/2025",ok:8},
+  {id:13,name:"META_ADS_NEW 1573239...",space:"default",src:"Meta Ads",status:"Active",lrs:"Success",lr:"4/23/2025, 12:14 AM",nr:"4/24/2025",ldd:"",ok:10},
+  {id:14,name:"Banking_DKO_13_6_new5...",space:"default",src:"Total Connect",status:"Active",lrs:"Success",lr:"4/22/2025, 03:11 AM",nr:"",ldd:"4/17/2025",ok:7},
+  {id:15,name:"Google_Ads_13 1561549853",space:"default",src:"Google Ads",status:"Active",lrs:"Success",lr:"4/23/2025, 12:17 AM",nr:"4/24/2025",ldd:"4/23/2025",ok:10},
+  {id:16,name:"Banking_csv 1571362619",space:"default",src:"Total Connect",status:"Active",lrs:"Success",lr:"4/22/2025, 06:23 AM",nr:"",ldd:"3/26/2025",ok:9},
+  {id:17,name:"GA4new1 1644174899",space:"default",src:"Google Analytics For EMI",status:"Active",lrs:"Processing",lr:"4/23/2025, 02:37 AM",nr:"",ldd:"4/24/2025",ok:4},
+];
+
+function rbClass(n){return n===10?'rb-g':n>=7?'rb-y':'rb-r'}
+
+function lrsHtml(p){
+  if(p.lrs==='Success') return `<span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Success</span>`;
+  if(p.lrs==='N/A') return `<span class="na">N/A</span>`;
+  if(p.lrs==='Processing') return `<span class="proc"><span class="spin"></span>Processing</span>`;
+  return p.lrs;
+}
+
+function stHtml(p){
+  if(p.status==='Active') return `<span class="bdg bdg-active"><span class="dot dot-g"></span>Active</span>`;
+  return `<span class="bdg bdg-failed"><span class="dot dot-r"></span>Failed</span>`;
+}
+
+function render(data){
+  const tb=document.getElementById('ptbody');
+  tb.innerHTML='';
+  document.getElementById('itemCount').textContent=data.length+' items';
+  data.forEach((p,i)=>{
+    const cls=rbClass(p.ok);
+    const btn=p.ok<10?`<button class="btn-logs" onclick="openModal(${p.id})">View failures</button>`:'';
+    tb.innerHTML+=`<tr>
+      <td class="rn">${i+1}</td>
+      <td><span class="pl">${p.name}</span></td>
+      <td>${p.space}</td>
+      <td>${p.src}</td>
+      <td>${stHtml(p)}</td>
+      <td>${lrsHtml(p)}</td>
+      <td style="white-space:nowrap">${p.lr}</td>
+      <td>${p.nr}</td>
+      <td>${p.ldd}</td>
+      <td style="white-space:nowrap"><span class="rb ${cls}">${p.ok}/10</span>${btn}</td>
+    </tr>`;
+  });
+}
+
+function filterRows(){
+  const q=document.getElementById('srchIn').value.toLowerCase();
+  render(q?pipelines.filter(p=>p.name.toLowerCase().includes(q)||p.src.toLowerCase().includes(q)):pipelines);
+}
+
+function genFailedLogs(p){
+  const fails=10-p.ok;
+  const out=[];
+  const base=new Date('2025-04-23');
+  const ids=['3bfLT00A','3bfLT00B','3bfLT00C','3bfLT00D','3bfLT00E','3bfLT00F','3bfLT00G','3bfLT00H','3bfLT00I','3bfLT00J'];
+  for(let i=0;i<fails;i++){
+    const d=new Date(base);d.setDate(d.getDate()-i);
+    const ds=d.toLocaleDateString('en-US');
+    const de=new Date(d);de.setDate(de.getDate()+1);
+    const ded=de.toLocaleDateString('en-US');
+    const hh=String(Math.floor(Math.random()*12)+1).padStart(2,'0');
+    const mm=String(Math.floor(Math.random()*60)).padStart(2,'0');
+    out.push({id:ids[i%ids.length],user:'OrgFarm EPIC',task:p.src.length>14?'Automated Pr...':p.src,dtype:'',ds,de:ded,rt:'Scheduled',se:ds+', '+hh+':'+mm,ee:ded+', 06:00'});
+  }
+  return out;
+}
+
+function openModal(pid){
+  const p=pipelines.find(x=>x.id===pid);
+  document.getElementById('mTitle').textContent=p.name;
+  document.getElementById('mMeta').innerHTML=`
+    <span>Connector: <strong>${p.src}</strong></span>
+    <span>Status: <strong>${p.status}</strong></span>
+    <span>Successful runs: <strong>${p.ok}/10</strong></span>
+    <span>Failed runs: <strong>${10-p.ok}/10</strong></span>
+  `;
+  const logs=genFailedLogs(p);
+  const lb=document.getElementById('logBody');
+  lb.innerHTML='';
+  logs.forEach((l,idx)=>{
+    const rowId=`log-${idx}`;
+    lb.innerHTML+=`<tr id="tr-${rowId}">
+      <td class="mid">${l.id}</td>
+      <td>${l.user}</td>
+      <td>${l.task}</td>
+      <td>${l.dtype}</td>
+      <td>${l.ds}</td>
+      <td>${l.de}</td>
+      <td><span class="fbdg">&#8856; Failed</span></td>
+      <td>${l.rt}</td>
+      <td style="white-space:nowrap">${l.se}</td>
+      <td style="white-space:nowrap">${l.ee}</td>
+      <td><button class="row-arrow" id="arr-${rowId}" onclick="toggleAction('${rowId}','${l.ds}','${l.de}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 6 15 12 9 18"/></svg></button></td>
+    </tr>
+    <tr class="action-row" id="act-${rowId}" style="display:none">
+      <td colspan="11">
+        <div class="action-panel">
+          <button class="btn-reprocess" id="rep-${rowId}" onclick="doReprocess('${rowId}','${l.ds}','${l.de}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            Reprocess
+          </button>
+          <span class="reprocess-note">Re-run this failed task for <strong>${l.ds} → ${l.de}</strong></span>
+        </div>
+      </td>
+    </tr>`; 
+  });
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+
+function toggleAction(rowId,ds,de){
+  const act=document.getElementById('act-'+rowId);
+  const arr=document.getElementById('arr-'+rowId);
+  const open=act.style.display==='table-row';
+  act.style.display=open?'none':'table-row';
+  arr.classList.toggle('open',!open);
+}
+
+function doReprocess(rowId,ds,de){
+  const btn=document.getElementById('rep-'+rowId);
+  btn.classList.add('loading');
+  btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:sp 1s linear infinite"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg> Processing...`;
+  btn.disabled=true;
+  setTimeout(()=>{
+    btn.classList.remove('loading');
+    btn.style.background='#1e7e34';
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Done`;
+    showToast('Reprocess triggered for '+ds+' → '+de);
+  },1800);
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal()});
+
+render(pipelines);
+</script>
+</body>
+</html>
